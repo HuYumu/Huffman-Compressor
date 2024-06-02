@@ -1,0 +1,10 @@
+#git
+.git
+
+#IDE
+.idea
+.vscode
+
+# build
+build
+cmake-build-debug
