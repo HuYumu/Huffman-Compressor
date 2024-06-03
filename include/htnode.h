@@ -5,7 +5,7 @@
 
 class HTNode {
 public:
-    unsigned char ch;
+    char ch;
     long freq;
     std::vector<char> code;
     int parent;

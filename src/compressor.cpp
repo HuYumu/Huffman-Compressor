@@ -31,19 +31,20 @@ void Compressor::compress() {
 
 
 void Compressor::read_count() {
-    long ch_freq_dict[MAX_SIZE] = {0};
+    long ch_freq_dict[MAX_UNIQUE_CHAR_SIZE] = {0};
 
-    FILE* file = fopen(this->file_path,"rb");
+    std::ifstream file;
+    file.open(this->file_path, std::ios::in | std::ios::binary);
 
-    unsigned char ch = fgetc(file);
-    while(!feof(file)) {
+    char ch;
+    while(!file.eof()) {
+        file.read(&ch,sizeof(ch));
         ++ch_freq_dict[ch];
         ++this->ch_cnt;
-        ch = fgetc(file);
     }
-    fclose(file);
+    file.close();
     
-    for(int i = 0; i < MAX_SIZE; ++i) {
+    for(int i = 0; i < MAX_UNIQUE_CHAR_SIZE; ++i) {
         if(ch_freq_dict[i] != 0) {
             this->chs[ch_type_cnt] = i;
             this->freq[ch_type_cnt] = ch_freq_dict[i];
@@ -102,51 +103,54 @@ void Compressor::create_hftree_code(long cur,std::vector<char>& path) {
 
 
 void Compressor::write_compress_res() {
-    FILE* file = fopen(this->file_path,"rb");
-    FILE* zipfile = fopen(this->zipfile_path,"wb");
+    std::ifstream file;
+    file.open(this->file_path, std::ios::in | std::ios::binary);
 
-    fwrite(&this->ch_cnt,sizeof(long),1,zipfile);
-    fwrite(&this->node_cnt,sizeof(long),1,zipfile);
+    std::ofstream zipfile;
+    zipfile.open(this->zipfile_path, std::ios::out | std::ios::binary);
+
+    zipfile.write(reinterpret_cast<char*>(&this->ch_cnt),sizeof(this->ch_cnt));
+    zipfile.write(reinterpret_cast<char*>(&this->node_cnt),sizeof(this->node_cnt));
+
     for(int k = 0; k < this->node_cnt; ++k) {
-        fwrite(&this->htree[k].ch,sizeof(unsigned char),1,zipfile);
-        fwrite(&this->htree[k].lchild,sizeof(int),1,zipfile);
-        fwrite(&this->htree[k].rchild,sizeof(int),1,zipfile);
+        zipfile.write(&this->htree[k].ch,sizeof(this->htree[k].ch));
+        zipfile.write(reinterpret_cast<char*>(&this->htree[k].lchild),sizeof(this->htree[k].lchild));
+        zipfile.write(reinterpret_cast<char*>(&this->htree[k].rchild),sizeof(this->htree[k].rchild));
     }
 
-    long ch_index[MAX_SIZE];
+    long ch_index[MAX_UNIQUE_CHAR_SIZE];
     for(int i = 0; i < this->ch_type_cnt; ++i) {
         ch_index[this->htree[i].ch] = i;
     }
 
-    unsigned char tmp = 0; 
     int bit_cnt = 0;
 
-    unsigned char ch = fgetc(file);
-    while(!feof(file)) {
+    char ch, tmp = 0;
+    while(!file.eof()) {
+        file.read(&ch,sizeof(ch));
         std::vector<char> code = this->htree[ch_index[ch]].code;
         for(int i = 0; i < code.size(); ++i) {
             ++bit_cnt;
             tmp = code[i] == '0'? (tmp << 1) : (tmp << 1) | 1;
             if(bit_cnt >= 8) {
-                fwrite(&tmp,sizeof(unsigned char),1,zipfile);
+                zipfile.write(&tmp,sizeof(tmp));
                 ++this->compress_ch_cnt;
                 bit_cnt = 0;
                 tmp = 0;
             }
         }
-        ch = fgetc(file);
     }
     
     if(bit_cnt > 0) {
         for(int i = 0; i < 8-bit_cnt; ++i) {
             tmp << 1;
         }
-        fwrite(&tmp,sizeof(unsigned char),1,zipfile);
+        zipfile.write(&tmp,sizeof(tmp));
         ++this->compress_ch_cnt;
     }
 
-    fclose(file);
-    fclose(zipfile);
+    file.close();
+    zipfile.close();
 
     std::cout << this->compress_ch_cnt << std::endl;
 }

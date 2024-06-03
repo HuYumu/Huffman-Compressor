@@ -10,8 +10,7 @@
 #include <string.h>
 
 
-#define MAX_SIZE 256
-#define MAX_WEIGHT 1000000
+#define MAX_UNIQUE_CHAR_SIZE 256
 
 class Compressor {
 public:
@@ -24,8 +23,8 @@ private:
     long ch_type_cnt = 0;
     long compress_ch_cnt = 0;
     long node_cnt = 0;
-    unsigned char chs[MAX_SIZE];
-    long freq[MAX_SIZE];
+    unsigned char chs[MAX_UNIQUE_CHAR_SIZE];
+    long freq[MAX_UNIQUE_CHAR_SIZE];
 
     const char *file_path, *zipfile_path;
 
